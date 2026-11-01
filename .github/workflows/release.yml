@@ -1,0 +1,19 @@
+name: Release
+on:
+  push: { tags: ["v*"] }
+permissions: { contents: write, id-token: write, attestations: write }
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: "8.3", extensions: curl }
+      - run: php tests/run.php
+      - run: git archive --format=zip -o "calendoro-php-$GITHUB_REF_NAME.zip" "$GITHUB_REF_NAME"
+      - uses: actions/attest-build-provenance@v2
+        with: { subject-path: "calendoro-php-*.zip" }
+      - run: gh release create "$GITHUB_REF_NAME" calendoro-php-*.zip --generate-notes --verify-tag
+        env: { GH_TOKEN: "${{ github.token }}" }
